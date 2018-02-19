@@ -5,8 +5,8 @@ output:
   html_document: default
 ---
 ```{r}
-install.packages("readxl")
-install.packages("ggplot2")
+#install.packages("readxl")
+#install.packages("ggplot2")
 library(readxl)
 library(ggplot2)
 ```
@@ -44,7 +44,7 @@ summary(fit)
 
 ```
 
-Notice that this linear fit has a positive slope, `r fit$coefficients[2]`, and that with such a large t-value, we can say with confidence that it is greater than 0 (i.e. there is a trend of increasing mean sea level in Acadia over the last 20 years).
+Notice that this linear fit has a positive slope, `r round(fit$coefficients[2] * 1000,2)` mm/year, and that with such a large t-value, we can say with confidence that it is greater than 0 (i.e. there is a trend of increasing mean sea level in Acadia over the last 20 years).  We can also reinforce this with a look at the 95% confidence interval for the slope in mm/year - (`r 1000*confint(fit, 'years', level=0.95)`).
 
 We can then add this trend line to our plot.
 ```{r}
@@ -55,3 +55,32 @@ ggplot(prob1, aes(years, Acadia)) +
   geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE)
 ```
 
+This slope is slightly different than the one given to us in the Excel file.
+
+```{r}
+npsMSL2 <- read_excel("Data/NPS_MeanSeaLevel_1.xlsx", sheet = "MSL_trend")
+npsMSL2 <- npsMSL2[1:5,-1]
+npsMSL2
+```
+To recreate their numbers, we need to look at all the historical data from the referenced site for [Station 8413320 ](https://tidesandcurrents.noaa.gov/sltrends/sltrends_station.shtml?stnid=8413320).
+```{r}
+acadia <- read.csv("https://tidesandcurrents.noaa.gov/sltrends/downloadMeanSeaLevelTrendsCSV.htm?stnid=8413320")
+acadia$years <- as.numeric(row.names(acadia))/12
+acadia <- acadia[1:1392,] #Removing everything after the previous year
+acadia
+```
+We can plot this.
+```{r}
+ggplot(acadia, aes(years, Monthly_MSL)) + 
+  geom_point(na.rm = TRUE, color = "orange") + 
+  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/1900", y = "Mean Sea Level") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE)
+```
+We can look at the linear fit.
+```{r}
+fit2 <- lm(Monthly_MSL ~ years, acadia)
+summary(fit2)
+
+```
+This gives a slope of `r round(1000*fit2$coefficients[2],2)` mm/year with a very large t-value.  Again, with certainty, we can say that the sea level is rising at this location.  We can look at the 95% confidence interval for the slope in mm/year - (`r 1000*confint(fit2, 'years', level=0.95)`).  This more closely mirrors the values they gave in the Excel sheet.
