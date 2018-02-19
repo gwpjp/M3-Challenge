@@ -1,0 +1,57 @@
+---
+title: "Solution to 2017 M3 Challenge"
+output:
+  html_notebook: default
+  html_document: default
+---
+```{r}
+install.packages("readxl")
+install.packages("ggplot2")
+library(readxl)
+library(ggplot2)
+```
+
+This is an outline of a method of solution of the [2017 M3 Challenge](https://m3challenge.siam.org/sites/default/files/uploads/M3%20Challenge%20PROBLEM_2017_0.pdf).  The webpage with all the data is located [here](https://m3challenge.siam.org/node/336).
+
+###Part 1 - Tides of Change
+The goal is to build a mathematical model that will classify five national parks in terms of their risk of sea level change (high, medium, or low) over the next 10, 20, and 50 years.
+
+To do so, we first look at the data [NPS_MeanSeaLevel](https://m3challenge.siam.org/sites/default/files/uploads/NPS_MeanSeaLevel_1.xlsx).  We look at the last sheet which contains the 20 years of mean sea level(MSL) data for the 5 national parks.
+
+```{r}
+library(readxl)
+prob1 <- read_excel("data/NPS_MeanSeaLevel_1.xlsx", "20yr_Monthly_MSL", skip = 3)
+colnames(prob1) <- c("Year", "Month", "Acadia", "Cape_Hatteras", "Kenai_Fords", "Olympic","Padre_Island")
+prob1
+```
+It will first be helpful to plot the data.  We first give ourselves a column that measures the number of years since January 1997.
+```{r}
+prob1$years <- as.numeric(row.names(prob1))/12
+prob1
+```
+Then we can look at a plot of Acadia
+```{r}
+ggplot(prob1, aes(years, Acadia)) + 
+  geom_point(na.rm = TRUE, color = "blue") + 
+  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/2017", y = "Mean Sea Level") +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+```
+We can then add a linear fit to it.
+```{r}
+fit <- lm(Acadia ~ years, prob1)
+summary(fit)
+
+```
+
+Notice that this linear fit has a positive slope, `r fit$coefficients[2]`, and that with such a large t-value, we can say with confidence that it is greater than 0 (i.e. there is a trend of increasing mean sea level in Acadia over the last 20 years).
+
+We can then add this trend line to our plot.
+```{r}
+ggplot(prob1, aes(years, Acadia)) + 
+  geom_point(na.rm = TRUE, color = "orange") + 
+  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/2017", y = "Mean Sea Level") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE)
+```
+
