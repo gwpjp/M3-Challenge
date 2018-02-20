@@ -8,9 +8,11 @@ output:
 #install.packages("readxl")
 #install.packages("ggplot2")
 #install.packages("reshape2")
+#install.packages("dplyr")
 library(readxl)
 library(ggplot2)
 library(reshape2)
+library(dplyr)
 ```
 
 This is an outline of a method of solution of the [2017 M3 Challenge](https://m3challenge.siam.org/sites/default/files/uploads/M3%20Challenge%20PROBLEM_2017_0.pdf).  The webpage with all the data is located [here](https://m3challenge.siam.org/node/336).
@@ -127,5 +129,17 @@ ggplot(mslFull, aes(years, Monthly_MSL, color = National_Park)) +
   theme(plot.title = element_text(hjust = 0.5), legend.position = "none") +
   geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE, color = "gray40")
 
+```
+```{r}
+dfLm <- as.data.frame(unique(mslFull$National_Park))
+colnames(dfLm) <- c("National_Park")
+for(i in 1:nrow(dfLm)){
+  dfTemp <- filter(mslFull, National_Park == dfLm$National_Park[i])
+  fit3 <- lm(Monthly_MSL ~ years,dfTemp)
+  dfLm$Upper_95[i] <- round((1000*confint(fit3, 'years', level=0.95))[1],2)
+  dfLm$MSL_Trend_Value[i] <- round(1000*fit3$coefficients[2],2)
+  dfLm$Lower_95[i] <- round((1000*confint(fit3, 'years', level=0.95))[2],2)
+}
+dfLm
 ```
 
