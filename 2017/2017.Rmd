@@ -7,8 +7,10 @@ output:
 ```{r}
 #install.packages("readxl")
 #install.packages("ggplot2")
+#install.packages("reshape2")
 library(readxl)
 library(ggplot2)
+library(reshape2)
 ```
 
 This is an outline of a method of solution of the [2017 M3 Challenge](https://m3challenge.siam.org/sites/default/files/uploads/M3%20Challenge%20PROBLEM_2017_0.pdf).  The webpage with all the data is located [here](https://m3challenge.siam.org/node/336).
@@ -33,7 +35,7 @@ Then we can look at a plot of Acadia
 ```{r}
 ggplot(prob1, aes(years, Acadia)) + 
   geom_point(na.rm = TRUE, color = "blue") + 
-  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/2017", y = "Mean Sea Level") +
+  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/1997", y = "Mean Sea Level") +
   theme(plot.title = element_text(hjust = 0.5)) 
 
 ```
@@ -50,7 +52,7 @@ We can then add this trend line to our plot.
 ```{r}
 ggplot(prob1, aes(years, Acadia)) + 
   geom_point(na.rm = TRUE, color = "orange") + 
-  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/2017", y = "Mean Sea Level") +
+  labs(title = "Mean Sea Level Trend for Acadia NP", x = "Years since 1/1/1997", y = "Mean Sea Level") +
   theme(plot.title = element_text(hjust = 0.5)) +
   geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE)
 ```
@@ -84,3 +86,46 @@ summary(fit2)
 
 ```
 This gives a slope of `r round(1000*fit2$coefficients[2],2)` mm/year with a very large t-value.  Again, with certainty, we can say that the sea level is rising at this location.  We can look at the 95% confidence interval for the slope in mm/year - (`r 1000*confint(fit2, 'years', level=0.95)`).  This more closely mirrors the values they gave in the Excel sheet.
+
+We will now look at all the stations.
+```{r}
+prob1Melt <- melt(prob1, id.vars=c("Year", "Month", "years"), variable.name = "National_Park", value.name = "MSL")
+prob1Melt
+```
+
+```{r}
+ggplot(prob1Melt, aes(years, MSL, color = National_Park)) + 
+  geom_point(na.rm = TRUE) + 
+  facet_grid(. ~ National_Park) + 
+  labs(title = "Mean Sea Level Trend for Various National Parks", x = "Years since 1/1/1997", y = "Mean Sea Level") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") +
+  geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE, color = "gray40")
+
+```
+
+For further reference, there is a full list of colors for ggplot2 on this [site](http://sape.inf.usi.ch/quick-reference/ggplot2/colour).
+
+Notice that the sea level change at Padre Island doesn't match the increase given in the excel sheet.  To understand this, we can look at the larger data set.
+
+```{r}
+#Keep just the data since 1970
+mslFull <- acadia[-(1:840),]
+mslFull$National_Park <- as.character(npsMSL2[2,2])
+for (i in 3:ncol(npsMSL2) ) {
+  dfTemp <- read.csv(paste("https://tidesandcurrents.noaa.gov/sltrends/downloadMeanSeaLevelTrendsCSV.htm?stnid=",as.character(as.integer(npsMSL2[1, i])),sep=""))
+  dfTemp$National_Park <- as.character(npsMSL2[2,i])
+  dfTemp$years <- as.numeric(row.names(dfTemp))/12
+  #Keep just the data since 1970
+  dfTemp <- dfTemp[-(1:840),]
+  mslFull <- rbind(mslFull, dfTemp)
+}
+
+ggplot(mslFull, aes(years, Monthly_MSL, color = National_Park)) + 
+  geom_point(na.rm = TRUE) + 
+  facet_grid(. ~ National_Park) + 
+  labs(title = "Mean Sea Level Trend for Various National Parks", x = "Years since 1/1/1970", y = "Mean Sea Level") +
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none") +
+  geom_smooth(method = 'lm', formula = y ~ x, na.rm = TRUE, color = "gray40")
+
+```
+
