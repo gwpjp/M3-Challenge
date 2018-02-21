@@ -17,8 +17,10 @@ library(dplyr)
 
 This is an outline of a method of solution of the [2017 M3 Challenge](https://m3challenge.siam.org/sites/default/files/uploads/M3%20Challenge%20PROBLEM_2017_0.pdf).  The webpage with all the data is located [here](https://m3challenge.siam.org/node/336).
 
-###Part 1 - Tides of Change
+##Part 1 - Tides of Change
 The goal is to build a mathematical model that will classify five national parks in terms of their risk of sea level change (high, medium, or low) over the next 10, 20, and 50 years.
+
+###Step 1 - Understanding the Data
 
 To do so, we first look at the data [NPS_MeanSeaLevel](https://m3challenge.siam.org/sites/default/files/uploads/NPS_MeanSeaLevel_1.xlsx).  We look at the last sheet which contains the 20 years of mean sea level(MSL) data for the 5 national parks.
 
@@ -142,4 +144,79 @@ for(i in 1:nrow(dfLm)){
 }
 dfLm
 ```
+
+
+###Step 2 - Creating the Model - Adlai E Stevenson HS
+The [winning solution](https://m3challenge.siam.org/sites/default/files/uploads/8597%20Adlai%20E%20Stevenson%20High%20School.pdf) was from Adlai E Stevenson HS.  We examine their solution.
+
+To do so, we first realize that the information given to us on sheet 2 of the Excel sheet will be our guiding data. 
+```{r}
+npsMSL2
+```
+
+They make the following assumption for their model (justified by an article from National Geographic).  A rise of greater than 1 foot (304.8 mm) in a century represents High Risk.  A rise of greater than 0.3 feet (91.44 mm) in a century represents Medium Risk.  Anything less is Low Risk.
+
+They then try to figure out the probability that a particular location will have a rise greater than these risk levels.  To do so, they assume a normal distribution of the MSL Trend Value.  First, they need to find the standard deviation from the 95% confidence interval that is given.  A 95% confidence interval for a standard normal distribution corresponds to the interval (-1.96, 1.96).
+
+```{r}
+qnorm(.025, mean = 0, sd = 1)
+qnorm(.975, mean = 0, sd = 1)
+```
+
+Thus, they need to figure out the corresponding situation in their case using these values.  For Acadia NP, this looks like
+
+```{r}
+mu <- 2.178
+sd <- (2.4 - mu)/qnorm(.975, mean = 0, sd = 1)
+sd
+```
+
+Now, looking at the rise in sea levels over the next 10 years.  We would expect them to rise 2.178 mm/year * 10 years = 21.78 mm.  However, the sea level trend is probabilistic, so we need to take this into account.  We do so by developing a new normal distribution with mean = 2.178 * 10 and standard deviation = 0.1132674 * 10^.5.  (Why is this the case?  See this [article](https://www.statlect.com/probability-distributions/normal-distribution-linear-combinations).)
+
+We can see this in the following calculation.  For a rise of 2.178 mm/year, we would expect ~42 years to reach the threshold of 91.44 mm.  Looking at the probabilities after 42 years.
+
+
+```{r}
+t <- 42
+"Low Risk"
+print(pnorm(91.44, mean = mu*t, sd = sd*t^.5))
+"Med Risk"
+print(pnorm(300.8, mean = mu*t, sd = sd*t^.5) - pnorm(91.44, mean = mu*t, sd = sd*t^.5))
+"High Risk"
+print(1 - pnorm(300.8, mean = mu*t, sd = sd*t^.5))
+```
+
+
+So, now to calculate the probabilites of risk for the assigned years (10, 20, 50, and 100).
+
+```{r}
+
+
+
+print("Low Risk")
+for (t in c(10, 20, 50, 100)) {
+  print(t)
+  print(pnorm(91.44, mean = mu*t, sd = sd*t^.5))
+}
+
+print("Med Risk")
+for (t in c(10, 20, 50, 100)) {
+  print(t)
+  print(pnorm(300.8, mean = mu*t, sd = sd*t^.5) - pnorm(91.44, mean = mu*t, sd = sd*t^.5))
+}
+
+print("High Risk")
+for (t in c(10, 20, 50, 100)) {
+  print(t)
+  print(1 - pnorm(300.8, mean = mu*t, sd = sd*t^.5))
+}
+
+
+```
+
+The team then picked the risk rating with the highest probability as the rating for that year.
+
+
+
+
 
