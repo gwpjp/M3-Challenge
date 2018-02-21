@@ -191,26 +191,25 @@ So, now to calculate the probabilites of risk for the assigned years (10, 20, 50
 
 ```{r}
 
-
-
-print("Low Risk")
-for (t in c(10, 20, 50, 100)) {
-  print(t)
-  print(pnorm(91.44, mean = mu*t, sd = sd*t^.5))
+dfRisk <- as.data.frame(matrix(NA, nrow = 20, ncol = 5))
+colnames(dfRisk) <- c("Station", "Years", "Low", "Med", "High")
+count <- 1
+str(dfRisk)
+for(i in 2:ncol(npsMSL2)){
+  station <- as.character(npsMSL2[2,i])
+  mu <- as.numeric(npsMSL2[4,i])
+  sd <- (as.numeric(npsMSL2[3,i]) - mu)/qnorm(0.975)
+  for(t in c(10,20,50,100)) {
+    dfRisk$Years[count] <- t
+    dfRisk$Station[count] <- station
+    dfRisk$Low[count] <- round(pnorm(91.44, mean = mu*t, sd = sd*t^.5),3)
+    dfRisk$Med[count] <- round(pnorm(300.8, mean = mu*t, sd = sd*t^.5) - pnorm(91.44, mean = mu*t, sd = sd*t^.5),3)
+    dfRisk$High[count] <- round(1 - pnorm(300.8, mean = mu*t, sd = sd*t^.5), 3)
+    count <- count + 1
+  }
 }
 
-print("Med Risk")
-for (t in c(10, 20, 50, 100)) {
-  print(t)
-  print(pnorm(300.8, mean = mu*t, sd = sd*t^.5) - pnorm(91.44, mean = mu*t, sd = sd*t^.5))
-}
-
-print("High Risk")
-for (t in c(10, 20, 50, 100)) {
-  print(t)
-  print(1 - pnorm(300.8, mean = mu*t, sd = sd*t^.5))
-}
-
+dfRisk
 
 ```
 
